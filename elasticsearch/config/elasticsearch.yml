@@ -22,4 +22,8 @@ discovery.type: single-node
 xpack.security.enabled: false
 xpack.monitoring.enabled: false
 xpack.ml.enabled: false
+xpack.graph.enabled: false
 xpack.watcher.enabled: false
+http.cors.enabled: true
+http.cors.allow-origin: "*"
+http.cors.allow-headers: "X-Requested-With, Content-Type, Content-Length, X-User"
