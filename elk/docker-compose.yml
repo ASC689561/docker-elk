@@ -10,6 +10,7 @@ services:
 #      - "9300:9300"
     environment:
       ES_JAVA_OPTS: "-Xmx256m -Xms256m"
+    restart: always
     networks:
       - elk
 
@@ -20,6 +21,8 @@ services:
       - ./logstash/pipeline:/usr/share/logstash/pipeline
     ports:
       - "91:5000"
+
+    restart: always
     environment:
       LS_JAVA_OPTS: "-Xmx256m -Xms256m"
     networks:
@@ -35,6 +38,7 @@ services:
 #      - "90:5601"
     networks:
       - elk
+    restart: always
     depends_on:
       - elasticsearch
   nginx:
@@ -42,6 +46,7 @@ services:
     ports:
       - "5602:7000"
       - "5603:7001"
+    restart: always
     networks:
       - elk
     links:
