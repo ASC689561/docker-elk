@@ -20,7 +20,8 @@ services:
       - ./logstash/config/logstash.yml:/usr/share/logstash/config/logstash.yml
       - ./logstash/pipeline:/usr/share/logstash/pipeline
     ports:
-      - "91:5000"
+      - "91:5000" # tcp logstash port
+      - "92:8080" # http logstash port
 
     restart: always
     environment:
@@ -34,8 +35,6 @@ services:
     build: kibana/
     volumes:
       - ./kibana/config/:/usr/share/kibana/config
-#    ports:
-#      - "90:5601"
     networks:
       - elk
     restart: always
