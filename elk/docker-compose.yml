@@ -5,6 +5,7 @@ services:
     build: elasticsearch/
     volumes:
       - ./elasticsearch/config/elasticsearch.yml:/usr/share/elasticsearch/config/elasticsearch.yml
+      - /elk-data:/usr/share/elasticsearch/data
 #    ports:
 #      - "92:9200"
 #      - "9300:9300"
@@ -35,25 +36,28 @@ services:
     build: kibana/
     volumes:
       - ./kibana/config/:/usr/share/kibana/config
+    ports:
+      - 5601:5601
+      - 93:5601
     networks:
       - elk
     restart: always
     depends_on:
       - elasticsearch
-  nginx:
-    image: nginx
-    ports:
-      - "5602:7000"
-      - "5603:7001"
-    restart: always
-    networks:
-      - elk
-    links:
-      - kibana
-      - elasticsearch
-    volumes:
-      - "/opt/projects/docker-elk:/etc/nginx/ssl/"
-      - "/opt/projects/docker-elk:/etc/nginx/conf.d/"
+#  nginx:
+#    image: nginx
+#    ports:
+#      - "5602:7000"
+#      - "5603:7001"
+#    restart: always
+#    networks:
+#      - elk
+#    links:
+#      - kibana
+#      - elasticsearch
+#    volumes:
+#      - "/opt/projects/docker-elk:/etc/nginx/ssl/"
+#      - "/opt/projects/docker-elk:/etc/nginx/conf.d/"
 
 networks:
   elk:
