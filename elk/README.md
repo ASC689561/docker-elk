@@ -1,13 +1,15 @@
-# Docker ELK stack
+# Elastic stack (ELK) on Docker
 
-[![Join the chat at https://gitter.im/deviantony/docker-elk](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/deviantony/docker-elk?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge) [![Elastic Stack version](https://img.shields.io/badge/ELK-5.6.2-blue.svg?style=flat)](https://github.com/deviantony/docker-elk/issues/175)
+[![Join the chat at https://gitter.im/deviantony/docker-elk](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/deviantony/docker-elk?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+[![Elastic Stack version](https://img.shields.io/badge/ELK-6.5.4-blue.svg?style=flat)](https://github.com/deviantony/docker-elk/issues/344)
+[![Build Status](https://api.travis-ci.org/deviantony/docker-elk.svg?branch=master)](https://travis-ci.org/deviantony/docker-elk)
 
-Run the latest version of the ELK (Elasticsearch, Logstash, Kibana) stack with Docker and Docker Compose.
+Run the latest version of the [Elastic stack](https://www.elastic.co/elk-stack) with Docker and Docker Compose.
 
 It will give you the ability to analyze any data set by using the searching/aggregation capabilities of Elasticsearch
 and the visualization power of Kibana.
 
-Based on the official Docker images:
+Based on the official Docker images from Elastic:
 
 * [elasticsearch](https://github.com/elastic/elasticsearch-docker)
 * [logstash](https://github.com/elastic/logstash-docker)
@@ -15,23 +17,24 @@ Based on the official Docker images:
 
 **Note**: Other branches in this project are available:
 
-* ELK 5 with X-Pack support: https://github.com/deviantony/docker-elk/tree/x-pack
-* ELK 5 in Vagrant: https://github.com/deviantony/docker-elk/tree/vagrant
-* ELK 5 with Search Guard: https://github.com/deviantony/docker-elk/tree/searchguard
+* [`x-pack`](https://github.com/deviantony/docker-elk/tree/x-pack): X-Pack support
+* [`searchguard`](https://github.com/deviantony/docker-elk/tree/searchguard): Search Guard support
+* [`vagrant`](https://github.com/deviantony/docker-elk/tree/vagrant): run Docker inside Vagrant
 
 ## Contents
 
 1. [Requirements](#requirements)
    * [Host setup](#host-setup)
    * [SELinux](#selinux)
-2. [Getting started](#getting-started)
+   * [Docker for Windows](#docker-for-windows)
+2. [Usage](#usage)
    * [Bringing up the stack](#bringing-up-the-stack)
    * [Initial setup](#initial-setup)
 3. [Configuration](#configuration)
    * [How can I tune the Kibana configuration?](#how-can-i-tune-the-kibana-configuration)
    * [How can I tune the Logstash configuration?](#how-can-i-tune-the-logstash-configuration)
    * [How can I tune the Elasticsearch configuration?](#how-can-i-tune-the-elasticsearch-configuration)
-   * [How can I scale out the Elasticsearch cluster?](#how-can-i-scale-up-the-elasticsearch-cluster)
+   * [How can I scale out the Elasticsearch cluster?](#how-can-i-scale-out-the-elasticsearch-cluster)
 4. [Storage](#storage)
    * [How can I persist Elasticsearch data?](#how-can-i-persist-elasticsearch-data)
 5. [Extensibility](#extensibility)
@@ -40,12 +43,16 @@ Based on the official Docker images:
 6. [JVM tuning](#jvm-tuning)
    * [How can I specify the amount of memory used by a service?](#how-can-i-specify-the-amount-of-memory-used-by-a-service)
    * [How can I enable a remote JMX connection to a service?](#how-can-i-enable-a-remote-jmx-connection-to-a-service)
+7. [Going further](#going-further)
+   * [Using a newer stack version](#using-a-newer-stack-version)
+   * [Plugins and integrations](#plugins-and-integrations)
+   * [Docker Swarm](#docker-swarm)
 
 ## Requirements
 
 ### Host setup
 
-1. Install [Docker](https://www.docker.com/community-edition#/download) version **1.10.0+**
+1. Install [Docker](https://www.docker.com/community-edition#/download) version **17.05+**
 2. Install [Docker Compose](https://docs.docker.com/compose/install/) version **1.6.0+**
 3. Clone this repository
 
@@ -55,27 +62,29 @@ On distributions which have SELinux enabled out-of-the-box you will need to eith
 into Permissive mode in order for docker-elk to start properly. For example on Redhat and CentOS, the following will
 apply the proper context:
 
-```bash
+```console
 $ chcon -R system_u:object_r:admin_home_t:s0 docker-elk/
 ```
+
+### Docker for Windows
+
+If you're using Docker for Windows, ensure the "Shared Drives" feature is enabled for the `C:` drive (Docker for Windows > Settings > Shared Drives). See [Configuring Docker for Windows Shared Drives](https://blogs.msdn.microsoft.com/stevelasker/2016/06/14/configuring-docker-for-windows-volumes/) (MSDN Blog).
 
 ## Usage
 
 ### Bringing up the stack
 
-Start the ELK stack using `docker-compose`:
+**Note**: In case you switched branch or updated a base image - you may need to run `docker-compose build` first
 
-```bash
+Start the stack using `docker-compose`:
+
+```console
 $ docker-compose up
 ```
 
-You can also choose to run it in background (detached mode):
+You can also run all services in the background (detached mode) by adding the `-d` flag to the above command.
 
-```bash
-$ docker-compose up -d
-```
-
-Give Kibana about 2 minutes to initialize, then access the Kibana web UI by hitting
+Give Kibana a few seconds to initialize, then access the Kibana web UI by hitting
 [http://localhost:5601](http://localhost:5601) with a web browser.
 
 By default, the stack exposes the following ports:
@@ -92,7 +101,7 @@ By default, the stack exposes the following ports:
 Now that the stack is running, you will want to inject some log entries. The shipped Logstash configuration allows you
 to send content via TCP:
 
-```bash
+```console
 $ nc localhost 5000 < /path/to/logfile.log
 ```
 
@@ -113,21 +122,16 @@ about the index pattern configuration.
 
 #### On the command line
 
-Run this command to create a Logstash index pattern:
+Create an index pattern via the Kibana API:
 
-```bash
-$ curl -XPUT -D- 'http://localhost:9200/.kibana/index-pattern/logstash-*' \
+```console
+$ curl -XPOST -D- 'http://localhost:5601/api/saved_objects/index-pattern' \
     -H 'Content-Type: application/json' \
-    -d '{"title" : "logstash-*", "timeFieldName": "@timestamp", "notExpandable": true}'
+    -H 'kbn-version: 6.5.4' \
+    -d '{"attributes":{"title":"logstash-*","timeFieldName":"@timestamp"}}'
 ```
 
-This command will mark the Logstash index pattern as the default index pattern:
-
-```bash
-$ curl -XPUT -D- 'http://localhost:9200/.kibana/config/5.6.2' \
-    -H 'Content-Type: application/json' \
-    -d '{"defaultIndex": "logstash-*"}'
-```
+The created pattern will automatically be marked as the default index pattern as soon as the Kibana UI is opened for the first time.
 
 ## Configuration
 
@@ -244,7 +248,7 @@ logstash:
 
 ### How can I enable a remote JMX connection to a service?
 
-As for the Java Heap memory (see above), you can specify JVM options to enable JMX and map the JMX port on the docker
+As for the Java Heap memory (see above), you can specify JVM options to enable JMX and map the JMX port on the Docker
 host.
 
 Update the `{ES,LS}_JAVA_OPTS` environment variable with the following content (I've mapped the JMX service on the port
@@ -257,3 +261,43 @@ logstash:
   environment:
     LS_JAVA_OPTS: "-Dcom.sun.management.jmxremote -Dcom.sun.management.jmxremote.ssl=false -Dcom.sun.management.jmxremote.authenticate=false -Dcom.sun.management.jmxremote.port=18080 -Dcom.sun.management.jmxremote.rmi.port=18080 -Djava.rmi.server.hostname=DOCKER_HOST_IP -Dcom.sun.management.jmxremote.local.only=false"
 ```
+
+## Going further
+
+### Using a newer stack version
+
+To use a different Elastic Stack version than the one currently available in the repository, simply change the version
+number inside the `.env` file, and rebuild the stack with:
+
+```console
+$ docker-compose build
+$ docker-compose up
+```
+
+**NOTE**: Always pay attention to the [upgrade instructions](https://www.elastic.co/guide/en/elasticsearch/reference/current/setup-upgrade.html)
+for each individual component before performing a stack upgrade.
+
+### Plugins and integrations
+
+See the following Wiki pages:
+
+* [External applications](https://github.com/deviantony/docker-elk/wiki/External-applications)
+* [Popular integrations](https://github.com/deviantony/docker-elk/wiki/Popular-integrations)
+
+### Docker Swarm
+
+Experimental support for Docker Swarm is provided in the form of a `docker-stack.yml` file, which can be deployed in an
+existing Swarm cluster using the following command:
+
+```console
+$ docker stack deploy -c docker-stack.yml elk
+```
+
+If all components get deployed without any error, the following command will show 3 running services:
+
+```console
+$ docker stack services elk
+```
+
+**NOTE:** to scale Elasticsearch in Swarm mode, configure *zen* to use the DNS name `tasks.elasticsearch` instead of
+`elasticsearch`.
